@@ -1,0 +1,26 @@
+{
+  "delay": 1500,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "execMap": {
+    "ts": "ts-node"
+  },
+  "ext": "js,json,ts,mjs",
+  "ignore": [
+    ".git",
+    "node_modules/**/node_modules",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "coverage",
+    "dist",
+    "build",
+    "*.log",
+    "temp",
+    ".vscode"
+  ],
+  "legacyWatch": false,
+  "restartable": "rs",
+  "verbose": true,
+  "watch": ["src", ".env"]
+}

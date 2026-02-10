@@ -1,5 +1,9 @@
-import { parseAllAuditsInput, parseCommonAuditInput } from "../validation/auditInput.js";
+import { runDeepAudit } from "../../core/prompt/agent.js";
 import { runAllAudits, runSingleAudit } from "../services/auditService.js";
+import {
+  parseAllAuditsInput,
+  parseCommonAuditInput,
+} from "../validation/auditInput.js";
 
 function createSingleAuditHandler(type) {
   return async function handleSingleAudit(req, res, next) {
@@ -27,3 +31,21 @@ export async function analyzeAll(req, res, next) {
   }
 }
 
+export async function analyzeDeep(req, res, next) {
+  try {
+    // 1. Run the standard hard-coded audits (Perf, SEO, Security)
+    const input = parseAllAuditsInput(req.body);
+    const standardReport = await runAllAudits(input);
+
+    // 2. Pass the results to the AI Agent
+    const aiAnalysis = await runDeepAudit(standardReport);
+
+    // 3. Merge and return
+    res.status(200).json({
+      ...standardReport,
+      deepAnalysis: aiAnalysis,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
