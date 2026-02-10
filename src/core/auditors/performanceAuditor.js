@@ -1,11 +1,12 @@
-import { deriveStatus, LOG_LEVEL } from "../utils/logs.js";
 import { ensureOk, fetchWithTimeout } from "../utils/http.js";
+import { deriveStatus, LOG_LEVEL } from "../utils/logs.js";
 
-const PSI_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+const PSI_ENDPOINT =
+  "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 const PRIORITY = {
   HIGH: "HIGH",
   MEDIUM: "MEDIUM",
-  LOW: "LOW"
+  LOW: "LOW",
 };
 
 function addRecommendation(recommendations, priority, area, action, impact) {
@@ -37,7 +38,7 @@ function buildMetrics({ lcpMs, fidMs, inpMs, cls }) {
     ...(inpMs === null ? { fidMs } : {}),
     inpMs,
     cls,
-    interactivity
+    interactivity,
   };
 }
 
@@ -46,7 +47,8 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
     key: "perf",
     name: "Performance Auditor",
     async run({ url, pageSpeedApiKey, timeoutMs = 0 }) {
-      const resolvedApiKey = pageSpeedApiKey ?? process.env.PAGESPEEDINSIGHTS_API_KEY;
+      const resolvedApiKey =
+        pageSpeedApiKey ?? process.env.PAGESPEEDINSIGHTS_API_KEY;
       const endpoint = new URL(PSI_ENDPOINT);
       endpoint.searchParams.set("url", url);
       endpoint.searchParams.set("strategy", "mobile");
@@ -54,7 +56,12 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
         endpoint.searchParams.set("key", resolvedApiKey);
       }
 
-      const response = await fetchWithTimeout(fetcher, endpoint.toString(), {}, timeoutMs);
+      const response = await fetchWithTimeout(
+        fetcher,
+        endpoint.toString(),
+        {},
+        timeoutMs,
+      );
       ensureOk(response, "PageSpeed Insights request");
       const payload = await response.json();
 
@@ -68,13 +75,16 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
       const logs = [];
       const recommendations = [];
       if (lcpMs === null) {
-        logs.push({ level: LOG_LEVEL.WARNING, message: "LCP unavailable from PSI response" });
+        logs.push({
+          level: LOG_LEVEL.WARNING,
+          message: "LCP unavailable from PSI response",
+        });
         addRecommendation(
           recommendations,
           PRIORITY.MEDIUM,
           "LCP",
           "Measure LCP in production and optimize critical rendering path.",
-          "Improves user-perceived load speed."
+          "Improves user-perceived load speed.",
         );
       } else if (lcpMs > 2500) {
         logs.push({ level: LOG_LEVEL.ERROR, message: "LCP > 2.5s" });
@@ -83,29 +93,38 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
           PRIORITY.HIGH,
           "LCP",
           "Optimize hero image delivery, server response time, and render-blocking resources.",
-          "Reduces bounce rate and improves Core Web Vitals compliance."
+          "Reduces bounce rate and improves Core Web Vitals compliance.",
         );
       } else if (lcpMs > 2000) {
-        logs.push({ level: LOG_LEVEL.WARNING, message: "LCP needs improvement" });
+        logs.push({
+          level: LOG_LEVEL.WARNING,
+          message: "LCP needs improvement",
+        });
         addRecommendation(
           recommendations,
           PRIORITY.MEDIUM,
           "LCP",
           "Preload above-the-fold assets and trim main-thread work during initial render.",
-          "Helps reach good LCP threshold."
+          "Helps reach good LCP threshold.",
         );
       } else {
-        logs.push({ level: LOG_LEVEL.INFO, message: "LCP is within target range" });
+        logs.push({
+          level: LOG_LEVEL.INFO,
+          message: "LCP is within target range",
+        });
       }
 
       if (inpMs === null && fidMs === null) {
-        logs.push({ level: LOG_LEVEL.WARNING, message: "INP/FID unavailable from PSI response" });
+        logs.push({
+          level: LOG_LEVEL.WARNING,
+          message: "INP/FID unavailable from PSI response",
+        });
         addRecommendation(
           recommendations,
           PRIORITY.MEDIUM,
           "Interactivity",
           "Collect real-user interactivity data and reduce heavy JavaScript handlers.",
-          "Improves responsiveness and reduces interaction delays."
+          "Improves responsiveness and reduces interaction delays.",
         );
       } else if (inpMs !== null) {
         if (inpMs > 500) {
@@ -115,19 +134,25 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
             PRIORITY.HIGH,
             "INP",
             "Break up long tasks, defer non-critical scripts, and optimize event handlers.",
-            "Improves responsiveness and user interaction quality."
+            "Improves responsiveness and user interaction quality.",
           );
         } else if (inpMs > 200) {
-          logs.push({ level: LOG_LEVEL.WARNING, message: "INP needs improvement" });
+          logs.push({
+            level: LOG_LEVEL.WARNING,
+            message: "INP needs improvement",
+          });
           addRecommendation(
             recommendations,
             PRIORITY.MEDIUM,
             "INP",
             "Reduce JavaScript execution and long main-thread tasks.",
-            "Moves interactivity into the good range."
+            "Moves interactivity into the good range.",
           );
         } else {
-          logs.push({ level: LOG_LEVEL.INFO, message: "INP is within target range" });
+          logs.push({
+            level: LOG_LEVEL.INFO,
+            message: "INP is within target range",
+          });
         }
       } else {
         if (fidMs > 300) {
@@ -137,30 +162,39 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
             PRIORITY.HIGH,
             "FID",
             "Reduce blocking JavaScript and execution-heavy third-party scripts.",
-            "Improves first interaction responsiveness."
+            "Improves first interaction responsiveness.",
           );
         } else if (fidMs > 100) {
-          logs.push({ level: LOG_LEVEL.WARNING, message: "FID needs improvement" });
+          logs.push({
+            level: LOG_LEVEL.WARNING,
+            message: "FID needs improvement",
+          });
           addRecommendation(
             recommendations,
             PRIORITY.MEDIUM,
             "FID",
             "Trim script execution on first interaction path.",
-            "Improves perceived responsiveness."
+            "Improves perceived responsiveness.",
           );
         } else {
-          logs.push({ level: LOG_LEVEL.INFO, message: "FID is within target range" });
+          logs.push({
+            level: LOG_LEVEL.INFO,
+            message: "FID is within target range",
+          });
         }
       }
 
       if (cls === null) {
-        logs.push({ level: LOG_LEVEL.WARNING, message: "CLS unavailable from PSI response" });
+        logs.push({
+          level: LOG_LEVEL.WARNING,
+          message: "CLS unavailable from PSI response",
+        });
         addRecommendation(
           recommendations,
           PRIORITY.MEDIUM,
           "CLS",
           "Track layout shifts in production and reserve layout dimensions for dynamic content.",
-          "Reduces visual instability."
+          "Reduces visual instability.",
         );
       } else if (cls > 0.25) {
         logs.push({ level: LOG_LEVEL.ERROR, message: "CLS > 0.25" });
@@ -169,19 +203,25 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
           PRIORITY.HIGH,
           "CLS",
           "Set explicit width/height on media and avoid injecting content above existing elements.",
-          "Prevents disruptive layout jumps."
+          "Prevents disruptive layout jumps.",
         );
       } else if (cls > 0.1) {
-        logs.push({ level: LOG_LEVEL.WARNING, message: "CLS needs improvement" });
+        logs.push({
+          level: LOG_LEVEL.WARNING,
+          message: "CLS needs improvement",
+        });
         addRecommendation(
           recommendations,
           PRIORITY.MEDIUM,
           "CLS",
           "Stabilize layout containers and preload critical fonts.",
-          "Improves visual stability toward good threshold."
+          "Improves visual stability toward good threshold.",
         );
       } else {
-        logs.push({ level: LOG_LEVEL.INFO, message: "CLS is within target range" });
+        logs.push({
+          level: LOG_LEVEL.INFO,
+          message: "CLS is within target range",
+        });
       }
 
       const score = calculateScore(logs);
@@ -195,12 +235,12 @@ export function createPerformanceAuditor({ fetcher = fetch } = {}) {
           score,
           scoring: {
             score,
-            outOf: 100
+            outOf: 100,
           },
-          recommendations
+          recommendations,
         },
-        logs
+        logs,
       };
-    }
+    },
   };
 }
