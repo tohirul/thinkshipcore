@@ -1,0 +1,29 @@
+{
+  "name": "thinkship-core",
+  "version": "0.1.0",
+  "description": "Modular Node.js service for website performance, SEO, and security audits.",
+  "type": "module",
+  "exports": {
+    ".": "./src/core/index.js"
+  },
+  "scripts": {
+    "start": "node ./src/server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "cli",
+    "seo",
+    "performance",
+    "security",
+    "auditing"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

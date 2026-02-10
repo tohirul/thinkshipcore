@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage
+
+# Build outputs
+dist
+build
+
+# Logs and System
+*.log
+.DS_Store
