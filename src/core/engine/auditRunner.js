@@ -4,35 +4,19 @@ export async function runAudits(input, registry) {
   const url = assertValidUrl(input.url);
   const startedAt = new Date().toISOString();
   const types = input.types ?? registry.keys();
-  const audits = [];
+  const audits = await Promise.all(
+    types.map((type) => {
+      const auditor = registry.get(type);
+      if (!auditor) {
+        throw new Error(`Unknown audit type: ${type}`);
+      }
 
-  for (const type of types) {
-    const auditor = registry.get(type);
-    if (!auditor) {
-      throw new Error(`Unknown audit type: ${type}`);
-    }
-
-    try {
-      const result = await auditor.run({
+      return runAuditorSafely(auditor, {
         ...input,
         url
       });
-      audits.push(result);
-    } catch (error) {
-      audits.push({
-        key: auditor.key,
-        name: auditor.name,
-        status: "FAIL",
-        details: {},
-        logs: [
-          {
-            level: "ERROR",
-            message: error?.message ?? "Unknown auditor error"
-          }
-        ]
-      });
-    }
-  }
+    })
+  );
 
   const finishedAt = new Date().toISOString();
   return {
@@ -42,6 +26,21 @@ export async function runAudits(input, registry) {
     audits,
     summary: summarizeLogs(audits)
   };
+}
+
+function runAuditorSafely(auditor, input) {
+  return auditor.run(input).catch((error) => ({
+    key: auditor.key,
+    name: auditor.name,
+    status: "FAIL",
+    details: {},
+    logs: [
+      {
+        level: "ERROR",
+        message: error?.message ?? "Unknown auditor error"
+      }
+    ]
+  }));
 }
 
 function summarizeLogs(audits) {

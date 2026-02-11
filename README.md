@@ -9,6 +9,10 @@ ThinkShip-Core is a modular Node.js audit engine exposed as an Express REST API.
 - Security audit (CSP, X-Frame-Options, and recommended headers)
 - Separate API endpoints per audit type
 - Combined endpoint for running all audits in one request
+- Multi-audit requests run auditors in parallel to reduce response time
+- Short-lived response cache for repeated `all`/`deep` requests
+- Deep audit endpoint that enriches standard audits with AI-generated optimization steps
+- Vercel-ready server entrypoint and catch-all routing for API deployment
 - Graceful handling for invalid URLs, 404s, and request timeouts
 
 ## Install
@@ -32,6 +36,8 @@ npm start
 Server default:
 
 - `http://localhost:4000`
+- `GET /` returns service status
+- `GET /health` returns `{ "status": "ok" }`
 
 Health check:
 
@@ -49,6 +55,7 @@ Endpoints:
 - `POST /api/audits/seo`
 - `POST /api/audits/security`
 - `POST /api/audits/all`
+- `POST /api/audits/deep`
 
 Request body:
 
@@ -65,13 +72,17 @@ Notes:
 
 - `url` is required.
 - `timeoutMs` defaults to `0` (no timeout).
-- `types` is used only by `/all`.
+- `types` is used by `/all` and `/deep`.
 - `pageSpeedApiKey` can be omitted when env key is available.
 - Performance metrics include unified `metrics.interactivity` (`INP` preferred, `FID` fallback).
 - Responses include scoring out of 100 at audit and summary level:
   - `details.scoring = { score, outOf: 100 }`
   - `summary.scoring = { score, outOf: 100 }`
   - plus `details.recommendations[]` and `summary.topFindings`.
+- `/deep` response includes `deepAnalysis` in addition to the standard report payload.
+- `/all` and `/deep` cache identical request payloads for a short TTL (default `60s`).
+- `/deep` may skip the LLM call when score is already healthy (`overallScore >= 90` and no errors).
+- If the deep-agent call times out or fails upstream, `/deep` still returns 200 with a fallback `deepAnalysis` status payload.
 
 Example: Performance audit
 
@@ -89,9 +100,20 @@ curl -X POST http://localhost:4000/api/audits/all \
   -d '{"url":"https://vivasoftltd.com","timeoutMs":0}'
 ```
 
-Environment variable fallback:
+Example: Deep audit
 
-- `PAGESPEEDINSIGHTS_API_KEY`
+```bash
+curl -X POST http://localhost:4000/api/audits/deep \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://vivasoftltd.com","timeoutMs":0}'
+```
+
+## Environment Variables
+
+- `PAGESPEEDINSIGHTS_API_KEY` (optional, fallback for performance audit)
+- `GROQ_API_KEY` (required for AI deep audit quality)
+- `PORT` (optional, local server only; defaults to `4000`)
+- `AUDIT_CACHE_TTL_MS` (optional, cache TTL in ms for `/all` and `/deep`; default `60000`, set `0` to disable)
 - request `pageSpeedApiKey` takes precedence over `.env`
 
 ## NPM Scripts
@@ -100,6 +122,13 @@ Environment variable fallback:
 npm test
 npm start
 ```
+
+## Vercel Deployment Notes
+
+- Vercel function entrypoint is `api/index.js` (exports the Express app).
+- `vercel.json` routes all incoming paths to `/api/index.js`.
+- Keep both `api/index.js` and `vercel.json` committed for Git-based deployments.
+- On Vercel, `process.env.VERCEL` is set automatically, so local `app.listen(...)` is skipped.
 
 ## Architecture
 

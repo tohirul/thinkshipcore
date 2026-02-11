@@ -131,4 +131,71 @@ describe("runAudits", () => {
     expect(report.summary.overallScore).toBe(90);
     expect(report.summary.scoring).toEqual({ score: 90, outOf: 100 });
   });
+
+  it("runs multiple audits in parallel", async () => {
+    const registry = new AuditRegistry();
+    const executionOrder = [];
+    let releasePerf;
+    let releaseSeo;
+
+    const perfGate = new Promise((resolve) => {
+      releasePerf = resolve;
+    });
+    const seoGate = new Promise((resolve) => {
+      releaseSeo = resolve;
+    });
+
+    registry.register({
+      key: "perf",
+      name: "Performance Auditor",
+      async run() {
+        executionOrder.push("perf:start");
+        await perfGate;
+        executionOrder.push("perf:end");
+        return {
+          key: "perf",
+          name: "Performance Auditor",
+          status: "PASS",
+          details: { score: 100 },
+          logs: [{ level: "INFO", message: "ok" }]
+        };
+      }
+    });
+
+    registry.register({
+      key: "seo",
+      name: "SEO Auditor",
+      async run() {
+        executionOrder.push("seo:start");
+        await seoGate;
+        executionOrder.push("seo:end");
+        return {
+          key: "seo",
+          name: "SEO Auditor",
+          status: "PASS",
+          details: { score: 100 },
+          logs: [{ level: "INFO", message: "ok" }]
+        };
+      }
+    });
+
+    const pending = runAudits(
+      {
+        url: "https://example.com",
+        types: ["perf", "seo"]
+      },
+      registry
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(executionOrder).toContain("perf:start");
+    expect(executionOrder).toContain("seo:start");
+
+    releasePerf();
+    releaseSeo();
+
+    const report = await pending;
+    expect(report.audits).toHaveLength(2);
+  });
 });
