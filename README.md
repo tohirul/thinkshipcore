@@ -56,6 +56,7 @@ Endpoints:
 - `POST /api/audits/security`
 - `POST /api/audits/all`
 - `POST /api/audits/deep`
+- `POST /api/audits/deep/progress` (SSE stream)
 
 Request body:
 
@@ -80,6 +81,20 @@ Notes:
   - `summary.scoring = { score, outOf: 100 }`
   - plus `details.recommendations[]` and `summary.topFindings`.
 - `/deep` response includes `deepAnalysis` in addition to the standard report payload.
+- `/deep/progress` streams stage-by-stage status events while the request is running.
+- Every streamed event includes a frontend-ready status payload:
+  - `requestId`, `stage`, `status`, `progress`, `message`, `timestamp`
+- `/deep/progress` emits stages:
+  - `request_received`
+  - `baseline_audit_started`
+  - repeated `baseline_audit_progress` (per-audit started/completed updates)
+  - `audit_report` (each baseline report generated)
+  - `baseline_audit_completed`
+  - `deep_analysis_started`
+  - repeated `deep_analysis_progress` while Groq is running
+  - `deep_analysis_completed` or `deep_analysis_skipped`
+  - `response_preparing`
+  - final SSE event `completed` with stage `response_dispatched` and full `result`
 - `/all` and `/deep` cache identical request payloads for a short TTL (default `60s`).
 - `/deep` may skip the LLM call when score is already healthy (`overallScore >= 90` and no errors).
 - If the deep-agent call times out or fails upstream, `/deep` still returns 200 with a fallback `deepAnalysis` status payload.
@@ -104,6 +119,14 @@ Example: Deep audit
 
 ```bash
 curl -X POST http://localhost:4000/api/audits/deep \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://vivasoftltd.com","timeoutMs":0}'
+```
+
+Example: Deep audit with live progress stream
+
+```bash
+curl -N -X POST http://localhost:4000/api/audits/deep/progress \
   -H "Content-Type: application/json" \
   -d '{"url":"https://vivasoftltd.com","timeoutMs":0}'
 ```

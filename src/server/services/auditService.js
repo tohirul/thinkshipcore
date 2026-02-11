@@ -7,7 +7,6 @@ export async function runSingleAudit(type, input) {
   });
 }
 
-export async function runAllAudits(input) {
-  return analyzeWebsite(input);
+export async function runAllAudits(input, options = {}) {
+  return analyzeWebsite(input, options);
 }
-

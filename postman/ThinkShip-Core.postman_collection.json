@@ -1,0 +1,134 @@
+{
+  "info": {
+    "_postman_id": "f6a56d2d-3023-4ee6-bc44-cf4a13d0ec46",
+    "name": "ThinkShip-Core Progress APIs",
+    "description": "Requests for deep audit and in-flight progress streaming (SSE).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deep Audit (JSON)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"{{testUrl}}\",\n  \"timeoutMs\": {{timeoutMs}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/audits/deep"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const payload = pm.response.json();",
+              "pm.test('Has deepAnalysis', function () {",
+              "  pm.expect(payload.deepAnalysis).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deep Audit Progress Stream (SSE)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "text/event-stream"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"{{testUrl}}\",\n  \"timeoutMs\": {{timeoutMs}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/audits/deep/progress",
+        "description": "Streams events: progress, completed, error"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const raw = pm.response.text();",
+              "pm.test('Contains progress events', function () {",
+              "  pm.expect(raw).to.include('event: progress');",
+              "});",
+              "pm.test('Contains completed event', function () {",
+              "  pm.expect(raw).to.include('event: completed');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "testUrl",
+      "value": "https://example.com",
+      "type": "string"
+    },
+    {
+      "key": "timeoutMs",
+      "value": "0",
+      "type": "string"
+    }
+  ]
+}

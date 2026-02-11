@@ -27,7 +27,7 @@ export async function analyzeWebsite(input, options = {}) {
       ...input,
       types
     },
-    registry
+    registry,
+    options
   );
 }
-

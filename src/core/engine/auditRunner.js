@@ -1,9 +1,10 @@
 import { assertValidUrl } from "../utils/url.js";
 
-export async function runAudits(input, registry) {
+export async function runAudits(input, registry, options = {}) {
   const url = assertValidUrl(input.url);
   const startedAt = new Date().toISOString();
   const types = input.types ?? registry.keys();
+  const onAuditEvent = typeof options.onAuditEvent === "function" ? options.onAuditEvent : null;
   const audits = await Promise.all(
     types.map((type) => {
       const auditor = registry.get(type);
@@ -11,9 +12,29 @@ export async function runAudits(input, registry) {
         throw new Error(`Unknown audit type: ${type}`);
       }
 
+      if (onAuditEvent) {
+        onAuditEvent({
+          type: "audit_started",
+          auditKey: auditor.key,
+          auditName: auditor.name
+        });
+      }
+
       return runAuditorSafely(auditor, {
         ...input,
         url
+      }).then((result) => {
+        if (onAuditEvent) {
+          const completedType = result?.status === "FAIL" ? "audit_failed" : "audit_completed";
+          onAuditEvent({
+            type: completedType,
+            auditKey: auditor.key,
+            auditName: auditor.name,
+            result
+          });
+        }
+
+        return result;
       });
     })
   );

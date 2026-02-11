@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   analyzeAll,
   analyzeDeep,
+  analyzeDeepProgress,
   analyzePerformance,
   analyzeSecurity,
   analyzeSeo,
@@ -15,6 +16,7 @@ export function createAuditRoutes() {
   router.post("/security", analyzeSecurity);
   router.post("/all", analyzeAll);
   router.post("/deep", analyzeDeep);
+  router.post("/deep/progress", analyzeDeepProgress);
 
   return router;
 }
